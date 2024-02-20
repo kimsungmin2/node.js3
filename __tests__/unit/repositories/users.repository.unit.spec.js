@@ -1,9 +1,6 @@
-// __tests__/unit/users.repository.unit.spec.js
-
 import { jest, expect } from "@jest/globals";
 import { UsersRepository } from "../../../src/repositories/users.repository.js";
 
-// Prisma 클라이언트에서는 아래 6개의 메서드만 사용합니다.
 let mockPrisma = {
     users: {
         create: jest.fn(),
@@ -17,9 +14,8 @@ let mockPrisma = {
 let usersRepository = new UsersRepository(mockPrisma);
 
 describe("Users Repository Unit Test", () => {
-    // 각 test가 실행되기 전에 실행됩니다.
     beforeEach(() => {
-        jest.resetAllMocks(); // 모든 Mock을 초기화합니다.
+        jest.resetAllMocks();
     });
 
     test("createUser Method", async () => {
@@ -87,7 +83,6 @@ describe("Users Repository Unit Test", () => {
         expect(mockPrisma.users.findMany).toHaveBeenCalledTimes(1);
     });
 
-    // getUserById 메서드 테스트
     test("getUserById Method", async () => {
         const mockReturn = "getUserById Return String";
         mockPrisma.users.findFirst.mockReturnValue(mockReturn);
@@ -99,7 +94,6 @@ describe("Users Repository Unit Test", () => {
         expect(mockPrisma.users.findFirst).toHaveBeenCalledWith({ where: { userId: +userId } });
     });
 
-    // getUserByEmail 메서드 테스트
     test("getUserByEmail Method", async () => {
         const mockReturn = "getUserByEmail Return String";
         mockPrisma.users.findFirst.mockReturnValue(mockReturn);
@@ -111,21 +105,20 @@ describe("Users Repository Unit Test", () => {
         expect(mockPrisma.users.findFirst).toHaveBeenCalledWith({ where: { email } });
     });
 
-    // updateUser 메서드 테스트
     test("updateUser Method", async () => {
         const mockReturn = "updateUser Return String";
         mockPrisma.users.update.mockReturnValue(mockReturn);
         const userId = 1;
-        const email = "update@test.com";
         const hashedPassword = "hashedPassword";
         const name = "updatedName";
-        const updatedUser = await usersRepository.updateUser(userId, email, hashedPassword, name);
+        const permission = "Admin";
+        const updatedUser = await usersRepository.updateUser(userId, hashedPassword, name, permission);
 
         expect(updatedUser).toBe(mockReturn);
         expect(mockPrisma.users.update).toHaveBeenCalledTimes(1);
         expect(mockPrisma.users.update).toHaveBeenCalledWith({
             where: { userId: +userId },
-            data: { email, password: hashedPassword, name },
+            data: { password: hashedPassword, name, permission },
         });
     });
     test("deleteUser Method", async () => {

@@ -48,6 +48,17 @@ export class UsersService {
     createUser = async (email, password, Checkpass, name) => {
         const emailstatus = "nono";
         const hashedPassword = await this.hashPassword(password);
+        if (password.length < 6) {
+            throw new Error("비밀번호가 6자 이상이어야 됩니다.");
+        }
+
+        if (password !== Checkpass) {
+            throw new Error("비밀번호 확인과 일치해야 합니다.");
+        }
+        const users = await this.usersRepository.getUserByEmail(email);
+        if (users) {
+            throw new Error("이미 존재하는 이메일입니다.");
+        }
 
         let token;
         if (emailstatus === "nono") {
@@ -85,6 +96,7 @@ export class UsersService {
 
     getUserById = async (userId) => {
         const user = await this.usersRepository.getUserById(userId);
+        if (!user) throw new Error("존재하지 않는 아이디입니다.");
         return user;
     };
 
@@ -111,26 +123,28 @@ export class UsersService {
         return { userJWT, refreshToken };
     };
 
-    updateUser = async (userId, email, password, name) => {
+    updateUser = async (userId, password, name, permission) => {
         const user = await this.usersRepository.getUserById(userId);
         const hashedPassword = await this.hashPassword(password);
 
+        if (!password === user.password) {
+            throw new Error("비밀번호가 일치하지 않습니다");
+        }
         if (!user) {
             throw new Error("해당 사용자를 찾을 수 없습니다.");
         }
 
-        const updatedUser = await this.usersRepository.updateUser(userId, email, hashedPassword, name);
+        const updatedUser = await this.usersRepository.updateUser(userId, hashedPassword, name, permission);
         return updatedUser;
     };
 
-    deleteUser = async (userId) => {
+    deleteUser = async (userId, permission) => {
         const user = await this.usersRepository.getUserById(userId);
 
         if (!user) {
             throw new Error("사용자를 찾을 수 없습니다.");
         }
-
-        await this.usersRepository.deleteUser(userId);
+        await this.usersRepository.deleteUser(userId, permission);
         return { message: "삭제 성공" };
     };
 }

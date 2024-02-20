@@ -4,7 +4,7 @@ import UsersRouter from "./users.router.js";
 
 const router = express.Router();
 
-router.use("/resume/", ResumeRouter);
+router.use("/resumes/", ResumeRouter);
 
 router.use("/users/", UsersRouter);
 export default router;

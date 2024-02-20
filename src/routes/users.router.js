@@ -23,8 +23,8 @@ router.post("/sign-in", usersController.signIn);
 
 router.post("/token", usersController.createUserToken);
 
-router.put("/put", authMiddleware, usersController.updateUser);
+router.patch("/:userId", authMiddleware, usersController.updateUser);
 
-router.delete("/delete", authMiddleware, usersController.deleteUser);
+router.delete("/:userId", authMiddleware, usersController.deleteUser);
 
 export default router;

@@ -67,7 +67,6 @@ describe("Resumes Repository Unit Test", () => {
         expect(mockPrisma.resumes.findFirst).toHaveBeenCalledTimes(1);
         expect(mockPrisma.resumes.findFirst).toHaveBeenCalledWith({
             where: { resumeId: +resumeId },
-            include: { user: { select: { name: true } } },
         });
     });
 

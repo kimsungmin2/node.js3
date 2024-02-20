@@ -22,7 +22,7 @@ router.get("/:resumeId", authMiddleware, resumesController.getResumeById);
 router.post("/", authMiddleware, resumesController.createResume);
 
 /** 게시글 수정 API **/
-router.put("/:resumeId", authMiddleware, resumesController.updateResume);
+router.patch("/:resumeId", authMiddleware, resumesController.updateResume);
 
 /** 게시글 삭제 API **/
 router.delete("/:resumeId", authMiddleware, resumesController.deleteResume);

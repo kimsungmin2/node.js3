@@ -1,3 +1,5 @@
+import { sendTodayData } from "../middlewares/slack.middlewares.js";
+
 export class ResumesService {
     constructor(resumesRepository) {
         this.resumesRepository = resumesRepository;
@@ -5,23 +7,27 @@ export class ResumesService {
 
     createResume = async (userId, title, content) => {
         const status = "APPLY";
+        await new Promise((resolve) => setTimeout(resolve, 3000));
         const resume = await this.resumesRepository.createResume(userId, title, content, status);
+        await sendTodayData();
         return resume;
     };
 
     getResumes = async (orderKey, orderValue) => {
+        const delay = () => {
+            return new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * 6) * 1000));
+        };
+
+        await delay();
         const resumes = await this.resumesRepository.getResumes(orderKey, orderValue);
-        return resumes.map((resume) => {
-            return {
-                resumeId: resume.resumeId,
-                userId: resume.userId,
-                title: resume.title,
-                status: resume.status,
-                name: resume.user.name,
-                createdAt: resume.createdAt,
-                updatedAt: resume.updatedAt,
-            };
-        });
+
+        try {
+            await sendTodayData();
+        } catch (err) {
+            next(err);
+        }
+
+        return resumes;
     };
 
     getResumeById = async (resumeId) => {
@@ -30,21 +36,17 @@ export class ResumesService {
     };
 
     updateResume = async (resumeId, title, content, status, userId, permission) => {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
         const resume = await this.resumesRepository.getResumeById(resumeId);
 
         if (!resume) {
             throw new Error("해당 이력서를 찾을 수 없습니다.");
         }
 
-        // 권한이 Admin이 아니고, 작성한 유저가 아니라면 오류를 던집니다.
-        if (permission !== "Admin" && resume.userId !== userId) {
-            throw new Error("권한이 없습니다.");
-        }
-
-        const statuses = ["APPLY", "DROP", "PASS", "INTERVIEW1", "INTERVIEW2", "FINAL_PASS"];
-
-        if (!statuses.includes(status)) {
-            throw new Error("이력서 상태가 이상합니다.");
+        try {
+            await sendTodayData();
+        } catch (err) {
+            next(err);
         }
 
         const updatedResume = await this.resumesRepository.updateResume(resumeId, title, content, status);
@@ -52,22 +54,19 @@ export class ResumesService {
     };
 
     deleteResume = async (resumeId, userId, permission) => {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
         const resume = await this.resumesRepository.getResumeById(resumeId);
-
         if (!resume) {
-            throw new Error("해당 이력서를 찾을 수 없습니다.");
+            throw new Error("사용자를 찾을 수 없습니다.");
         }
 
-        // 권한이 Admin이 아니고, 작성한 유저가 아니라면 오류를 던집니다.
-        if (permission !== "Admin" && resume.userId !== userId) {
-            throw new Error("권한이 없습니다.");
+        try {
+            await sendTodayData();
+        } catch (err) {
+            next(err);
         }
 
-        if (!resume) {
-            throw new Error("이력서를 찾을 수 없습니다.");
-        }
-
-        await this.resumesRepository.deleteResume(resumeId, userId);
+        await this.resumesRepository.deleteResume(resumeId, userId, permission);
         return { message: "삭제 성공" };
     };
 }

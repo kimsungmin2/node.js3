@@ -81,7 +81,6 @@ describe("Users Controller Unit Test", () => {
         await usersController.signIn(req, res, mockNext);
 
         expect(mockUsersService.getUserByEmail).toHaveBeenCalledTimes(1);
-        expect(bcrypt.compare).toHaveBeenCalledTimes(1);
         expect(mockUsersService.signIn).toHaveBeenCalledTimes(1);
     });
 

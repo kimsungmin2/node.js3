@@ -49,16 +49,16 @@ export class UsersRepository {
         return user;
     };
 
-    updateUser = async (userId, email, hashedPassword, name) => {
+    updateUser = async (userId, hashedPassword, name, permission) => {
         const updatedUser = await this.prisma.users.update({
             where: { userId: +userId },
-            data: { email, password: hashedPassword, name },
+            data: { password: hashedPassword, name, permission },
         });
 
         return updatedUser;
     };
 
-    deleteUser = async (userId) => {
+    deleteUser = async (userId, permission) => {
         const deletedUser = await this.prisma.users.delete({
             where: {
                 userId: +userId,
