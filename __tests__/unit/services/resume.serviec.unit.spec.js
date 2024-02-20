@@ -32,38 +32,52 @@ describe("Resumes Service Unit Test", () => {
         const mockReturn = ["resume1", "resume2"];
         const orderKey = "createdAt";
         const orderValue = "desc";
+        const orderBy = { [orderKey]: orderValue };
+
         mockResumesRepository.getResumes.mockReturnValue(mockReturn);
         const resumes = await resumesService.getResumes(orderKey, orderValue);
 
         expect(resumes).toBe(mockReturn);
+        expect(mockResumesRepository.getResumes).toHaveBeenCalledWith(orderBy);
         expect(mockResumesRepository.getResumes).toHaveBeenCalledTimes(1);
     });
 
     test("getResumeById Method", async () => {
         const mockReturn = "getResumeById Return String";
         const resumeId = 1;
-        mockResumesRepository.getResumeById.mockReturnValue(mockReturn);
+
+        mockResumesRepository.getResumeById.mockReturnValue(Promise.resolve(mockReturn));
+
         const resume = await resumesService.getResumeById(resumeId);
 
-        expect(resume).toBe(mockReturn);
         expect(mockResumesRepository.getResumeById).toHaveBeenCalledTimes(1);
+        expect(mockResumesRepository.getResumeById).toHaveBeenCalledWith(resumeId);
+
+        expect(resume).toEqual(mockReturn);
+
+        mockResumesRepository.getResumeById.mockReturnValue(null);
+        await expect(resumesService.getResumeById(resumeId)).rejects.toThrow("해당 이력서를 찾을 수 없습니다.");
     });
 
     test("updateResume Method", async () => {
-        const mockReturn = "updateResume Return String";
+        const mockReturn = { message: "업데이트에 성공하였습니다." };
+        const userId = 1;
         const resumeId = 1;
         const title = "testTitle";
         const content = "testContent";
         const status = "APPLY";
-        const userId = 1;
-        const permission = "Admin";
-        mockResumesRepository.getResumeById.mockReturnValue({ userId });
+        const mockResume = { resumeId, title, content, status };
+        mockResumesRepository.getResumeById.mockReturnValue(mockResume);
         mockResumesRepository.updateResume.mockReturnValue(mockReturn);
-        const updatedResume = await resumesService.updateResume(resumeId, title, content, status, userId, permission);
 
-        expect(updatedResume).toBe(mockReturn);
+        const updatedResume = await resumesService.updateResume(userId, resumeId, title, content, status);
+
+        expect(updatedResume).toEqual(mockReturn);
         expect(mockResumesRepository.getResumeById).toHaveBeenCalledTimes(1);
         expect(mockResumesRepository.updateResume).toHaveBeenCalledTimes(1);
+
+        mockResumesRepository.getResumeById.mockReturnValue(Promise.resolve(null));
+        await expect(resumesService.updateResume(userId, resumeId, title, content, status)).rejects.toThrow("해당 이력서를 찾을 수 없습니다.");
     });
 
     test("deleteResume Method", async () => {
@@ -77,5 +91,8 @@ describe("Resumes Service Unit Test", () => {
         expect(deletedResume).toEqual(mockReturn);
         expect(mockResumesRepository.getResumeById).toHaveBeenCalledTimes(1);
         expect(mockResumesRepository.deleteResume).toHaveBeenCalledTimes(1);
+
+        mockResumesRepository.getResumeById.mockReturnValue(null);
+        await expect(resumesService.deleteResume(resumeId, userId, permission)).rejects.toThrow("해당 이력서를 찾을 수 없습니다.");
     });
 });

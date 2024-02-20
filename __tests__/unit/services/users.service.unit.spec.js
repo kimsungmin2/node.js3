@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { expect, jest } from "@jest/globals";
 import { UsersService } from "../../../src/services/users.service.js";
 import bcrypt from "bcrypt";
 
@@ -37,6 +37,13 @@ describe("Users Service Unit Test", () => {
 
         expect(user).toBe(mockReturn);
         expect(mockUsersRepository.createUser).toHaveBeenCalledTimes(1);
+
+        await expect(usersService.createUser(email, "asd", Checkpass, name)).rejects.toThrow("비밀번호가 6자 이상이어야 됩니다.");
+
+        await expect(usersService.createUser(email, password, "Checkpass", name)).rejects.toThrow("비밀번호 확인과 일치해야 합니다.");
+
+        mockUsersRepository.getUserByEmail.mockReturnValue({});
+        await expect(usersService.createUser(email, password, Checkpass, name)).rejects.toThrow("이미 존재하는 이메일입니다.");
     });
 
     test("createUserToken Method", async () => {
@@ -51,8 +58,17 @@ describe("Users Service Unit Test", () => {
         await usersService.createUserToken(email, token);
 
         expect(mockUsersRepository.getUserByEmail).toHaveBeenCalledTimes(1);
+        mockUsersRepository.getUserByEmail.mockReturnValue(null);
+        await expect(usersService.createUserToken(email, token)).rejects.toThrow("유저를 찾을 수 없습니다.");
+
         expect(mockUsersRepository.getUserByEmail).toHaveBeenCalledWith(email);
         expect(mockUsersRepository.updateUserEmailStatus).toHaveBeenCalledTimes(1);
+
+        mockUsersRepository.getUserByEmail.mockResolvedValue({ emailstatus: "yes" });
+        await expect(usersService.createUserToken(email, token)).rejects.toThrow("이미 이메일 인증이 완료된 유저입니다.");
+
+        mockUsersRepository.getUserByEmail.mockResolvedValue({ emailstatus: "nono", verificationToken: "nop" });
+        await expect(usersService.createUserToken(email, token)).rejects.toThrow("인증 코드가 일치하지 않습니다.");
     });
 
     test("getUsers Method", async () => {
@@ -65,56 +81,96 @@ describe("Users Service Unit Test", () => {
     });
 
     test("getUserById Method", async () => {
-        const mockReturn = "getUserById Return String";
+        const mockReturn = "userId";
         const userId = 1;
-        mockUsersRepository.getUserById.mockReturnValue(mockReturn);
+
+        mockUsersRepository.getUserById.mockReturnValue(Promise.resolve(mockReturn));
+
         const user = await usersService.getUserById(userId);
 
-        expect(user).toBe(mockReturn);
         expect(mockUsersRepository.getUserById).toHaveBeenCalledTimes(1);
         expect(mockUsersRepository.getUserById).toHaveBeenCalledWith(userId);
-    });
-    test("getUserByEmail Method", async () => {
-        const mockReturn = "getUserByEmail Return String";
-        const email = "test@email.com";
-        mockUsersRepository.getUserByEmail.mockReturnValue(mockReturn);
-        const user = await usersService.getUserByEmail(email);
 
         expect(user).toBe(mockReturn);
+
+        mockUsersRepository.getUserById.mockReturnValue(Promise.resolve(null));
+        await expect(usersService.getUserById(999)).rejects.toThrow("존재하지 않는 아이디입니다.");
+    });
+
+    test("getUserByEmail Method", async () => {
+        const mockReturn = "email";
+        const email = "test@email.com";
+
+        mockUsersRepository.getUserByEmail.mockReturnValue(Promise.resolve(mockReturn));
+
+        const user = await usersService.getUserByEmail(email);
+
         expect(mockUsersRepository.getUserByEmail).toHaveBeenCalledTimes(1);
         expect(mockUsersRepository.getUserByEmail).toHaveBeenCalledWith(email);
+
+        expect(user).toBe(mockReturn);
+
+        mockUsersRepository.getUserByEmail.mockReturnValue(Promise.resolve(null));
+        await expect(usersService.getUserByEmail("wrong@email.com")).rejects.toThrow("존재하지 않는 이메일입니다.");
     });
 
     test("signIn Method", async () => {
         const mockReturn = {
             userId: 1,
-            password: await bcrypt.hash("testPassword", 10),
+            email: "test@email.com",
+            password: "testPassword",
+            emailstatus: "yes",
         };
         const email = "test@email.com";
         const password = "testPassword";
-        mockUsersRepository.getUserByEmail.mockReturnValue(mockReturn);
-        const tokens = await usersService.signIn(email, password);
 
-        expect(mockUsersRepository.getUserByEmail).toHaveBeenCalledTimes(1);
-        expect(mockUsersRepository.getUserByEmail).toHaveBeenCalledWith(email);
-        expect(tokens).toHaveProperty("userJWT");
-        expect(tokens).toHaveProperty("refreshToken");
+        bcrypt.compare = jest.fn(() => Promise.resolve(true));
+
+        mockUsersRepository.getUserByEmail.mockReturnValue(Promise.resolve(mockReturn));
+
+        mockUsersRepository.getUserByEmail.mockReturnValue(Promise.resolve(null));
+        await expect(usersService.signIn("wrong@email.com", password)).rejects.toThrow("존재하지 않는 이메일입니다.");
+
+        bcrypt.compare = jest.fn(() => Promise.resolve(false));
+        mockUsersRepository.getUserByEmail.mockReturnValue(Promise.resolve(mockReturn));
+        await expect(usersService.signIn(email, "wrongPassword")).rejects.toThrow("비밀번호가 일치하지 않습니다.");
     });
 
     test("updateUser Method", async () => {
-        const mockReturn = "updateUser Return String";
+        const mockUser = {
+            userId: 1,
+            password: "testPassword",
+            email: "test@email.com",
+            name: "testName",
+            permission: "testPermission",
+        };
         const userId = 1;
-        const email = "test@email.com";
-        const password = "testPassword";
-        const name = "testName";
-        mockUsersRepository.getUserById.mockReturnValue({ userId });
-        mockUsersRepository.updateUser.mockReturnValue(mockReturn);
-        const updatedUser = await usersService.updateUser(userId, email, password, name);
+        const newPassword = "testPassword";
+        const newName = "testName";
+        const newPermission = "testPermission";
+        const hashedPassword = "hashedNewPassword";
 
-        expect(updatedUser).toBe(mockReturn);
+        mockUsersRepository.getUserById.mockReturnValue(Promise.resolve(mockUser));
+        usersService.hashPassword = jest.fn(() => Promise.resolve(hashedPassword));
+        mockUsersRepository.updateUser.mockReturnValue(
+            Promise.resolve({ ...mockUser, password: hashedPassword, name: newName, permission: newPermission })
+        );
+
+        const updatedUser = await usersService.updateUser(userId, newPassword, newName, newPermission);
+
         expect(mockUsersRepository.getUserById).toHaveBeenCalledTimes(1);
         expect(mockUsersRepository.getUserById).toHaveBeenCalledWith(userId);
+        expect(usersService.hashPassword).toHaveBeenCalledTimes(1);
+        expect(usersService.hashPassword).toHaveBeenCalledWith(newPassword);
         expect(mockUsersRepository.updateUser).toHaveBeenCalledTimes(1);
+        expect(mockUsersRepository.updateUser).toHaveBeenCalledWith(userId, hashedPassword, newName, newPermission);
+
+        expect(updatedUser.password).toBe(hashedPassword);
+        expect(updatedUser.name).toBe(newName);
+        expect(updatedUser.permission).toBe(newPermission);
+
+        mockUsersRepository.getUserById.mockReturnValue(Promise.resolve(null));
+        await expect(usersService.updateUser("userId", newPassword, newName, newPermission)).rejects.toThrow("해당 사용자를 찾을 수 없습니다.");
     });
 
     test("deleteUser Method", async () => {
@@ -127,5 +183,7 @@ describe("Users Service Unit Test", () => {
         expect(mockUsersRepository.getUserById).toHaveBeenCalledTimes(1);
         expect(mockUsersRepository.getUserById).toHaveBeenCalledWith(userId);
         expect(mockUsersRepository.deleteUser).toHaveBeenCalledTimes(1);
+        mockUsersRepository.getUserById.mockReturnValue(Promise.resolve(null));
+        await expect(usersService.deleteUser("userId")).rejects.toThrow("해당 사용자를 찾을 수 없습니다.");
     });
 });

@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { expect, jest } from "@jest/globals";
 import { ResumeController } from "../../../src/controllers/resumes.controller.js";
 
 const mockResumesService = {
@@ -46,39 +46,47 @@ test("createResume Method", async () => {
     expect(mockResumesService.createResume).toHaveBeenCalledWith(userId, title, content, status);
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ message: "게시글 생성에 성공하였습니다" });
-
-    const invalidStatus = "INVALID_STATUS";
-    req.body.status = invalidStatus;
-    await resumeController.createResume(req, res, next);
-    expect(next).toHaveBeenCalledWith(new Error("이력서 상태가 이상합니다."));
 });
 
 test("getResumes Method", async () => {
-    const req = mockRequest({}, {}, {});
+    const mockResumes = [
+        { resumeId: 1, title: "Test1", content: "Content1", status: "APPLY", userId: 1 },
+        { resumeId: 2, title: "Test2", content: "Content2", status: "APPLY", userId: 2 },
+    ];
+    mockResumesService.getResumes.mockReturnValue(mockResumes);
+    const req = {
+        query: { orderKey: "title", orderValue: "asc" },
+    };
     const res = mockResponse();
-    await resumeController.getResumes(req, res, mockNext);
+    let next = jest.fn();
+
+    await resumeController.getResumes(req, res, next);
 
     expect(mockResumesService.getResumes).toHaveBeenCalledTimes(1);
+    expect(mockResumesService.getResumes).toHaveBeenCalledWith("title", "asc");
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ data: mockResumes });
 });
 
-test("getResumeById Method", async () => {
-    const resume = { id: 1, title: "Test", content: "Content", status: "APPLY", userId: 1 };
+test("getResumeById Method - success case", async () => {
+    const resume = { resumeId: 1, title: "Test", content: "Content", status: "APPLY", userId: 1 };
     mockResumesService.getResumeById.mockReturnValue(resume);
-    const req = mockRequest({}, { resumeId: 1 }, {});
+    const req = {
+        params: { resumeId: 1 },
+    };
     const res = mockResponse();
-    const next = jest.fn();
+    let next = jest.fn();
 
     await resumeController.getResumeById(req, res, next);
-    expect(res.json).toHaveBeenCalledWith({ data: resume });
+
     expect(mockResumesService.getResumeById).toHaveBeenCalledTimes(1);
-
-    mockResumesService.getResumeById.mockReturnValue(null);
-    await resumeController.getResumeById(req, res, next);
-    expect(next).toHaveBeenCalledWith(new Error("해당 이력서를 찾을 수 없습니다."));
+    expect(mockResumesService.getResumeById).toHaveBeenCalledWith(1);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ data: resume });
 });
 
 test("updateResume Method", async () => {
-    const mockReturn = { id: 1, title: "Test", content: "Content", status: "APPLY", userId: 1 };
+    const mockReturn = { resumeId: 1, title: "Test", content: "Content", status: "APPLY", userId: 1 };
     mockResumesService.updateResume.mockReturnValue(mockReturn);
     mockResumesService.getResumeById.mockReturnValue(mockReturn);
     const resumeId = 1;
@@ -93,7 +101,7 @@ test("updateResume Method", async () => {
         user: { userId, permission },
     };
     const res = mockResponse();
-    const next = jest.fn();
+    let next = jest.fn();
 
     await resumeController.updateResume(req, res, next);
 
@@ -102,14 +110,13 @@ test("updateResume Method", async () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(mockReturn);
 
-    mockResumesService.getResumeById.mockReturnValue(null);
-    await resumeController.updateResume(req, res, next);
-    expect(next).toHaveBeenCalledWith(new Error("해당 이력서를 찾을 수 없습니다."));
-
-    req.body.status = "INVALID_STATUS";
-    req.user.permission = "Admin";
-    await resumeController.updateResume(req, res, next);
-    expect(next).toHaveBeenCalledWith(new Error("해당 이력서를 찾을 수 없습니다."));
+    req.user.permission = "User";
+    req.user.userId = 2;
+    mockResumesService.getResumeById.mockReturnValue({ ...mockReturn, userId: 1 });
+    next = (err) => {
+        throw err;
+    };
+    await expect(resumeController.updateResume(req, res, next)).rejects.toThrow("권한이 없습니다.");
 });
 
 test("deleteResume Method", async () => {
@@ -124,22 +131,20 @@ test("deleteResume Method", async () => {
         user: { userId, permission },
     };
     const res = mockResponse();
-    const next = jest.fn();
+    let next = jest.fn();
 
     await resumeController.deleteResume(req, res, next);
 
-    expect(mockResumesService.getResumeById).toHaveBeenCalledTimes(6);
+    expect(mockResumesService.getResumeById).toHaveBeenCalledTimes(4);
     expect(mockResumesService.deleteResume).toHaveBeenCalledTimes(1);
     expect(mockResumesService.deleteResume).toHaveBeenCalledWith(resumeId, userId, permission);
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({ message: "삭제 성공" });
-
-    mockResumesService.getResumeById.mockReturnValue(null);
-    await resumeController.deleteResume(req, res, next);
-    expect(next).toHaveBeenCalledWith(new Error("해당 이력서를 찾을 수 없습니다."));
-
     req.user.permission = "User";
-    mockResumesService.getResumeById.mockReturnValue(mockReturn);
-    await resumeController.deleteResume(req, res, next);
-    expect(next).toHaveBeenCalledWith(new Error("해당 이력서를 찾을 수 없습니다."));
+    req.user.userId = 2;
+    mockResumesService.getResumeById.mockReturnValue({ ...mockReturn, userId: 1 });
+    next = (err) => {
+        throw err;
+    };
+    await expect(resumeController.deleteResume(req, res, next)).rejects.toThrow("권한이 없습니다.");
 });

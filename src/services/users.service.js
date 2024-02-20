@@ -117,6 +117,7 @@ export class UsersService {
             throw new Error("비밀번호가 일치하지 않습니다.");
         }
 
+        if (user.emailstatus !== "yes") return res.status(401).json({ message: "가입 대기중인 계정입니다." });
         const userJWT = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET, { expiresIn: "12h" });
         const refreshToken = jwt.sign({ userId: user.userId }, process.env.REFRESH_SECRET, { expiresIn: "7d" });
 
@@ -126,12 +127,11 @@ export class UsersService {
     updateUser = async (userId, password, name, permission) => {
         const user = await this.usersRepository.getUserById(userId);
         const hashedPassword = await this.hashPassword(password);
-
-        if (!password === user.password) {
-            throw new Error("비밀번호가 일치하지 않습니다");
-        }
         if (!user) {
             throw new Error("해당 사용자를 찾을 수 없습니다.");
+        }
+        if (!password === user.password) {
+            throw new Error("비밀번호가 일치하지 않습니다");
         }
 
         const updatedUser = await this.usersRepository.updateUser(userId, hashedPassword, name, permission);
@@ -142,7 +142,7 @@ export class UsersService {
         const user = await this.usersRepository.getUserById(userId);
 
         if (!user) {
-            throw new Error("사용자를 찾을 수 없습니다.");
+            throw new Error("해당 사용자를 찾을 수 없습니다.");
         }
         await this.usersRepository.deleteUser(userId, permission);
         return { message: "삭제 성공" };

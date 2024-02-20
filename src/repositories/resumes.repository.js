@@ -14,26 +14,12 @@ export class ResumesRepository {
         });
         return resume;
     };
-
     getResumes = async (orderKey, orderValue) => {
-        let orderBy = {};
-        if (orderKey) {
-            orderBy[orderKey] = orderValue && orderValue.toUpperCase() === "ASC" ? "asc" : "desc";
-        } else {
-            orderBy = { createdAt: "desc" };
-        }
-
         const resumes = await this.prisma.resumes.findMany({
-            include: {
-                user: {
-                    select: {
-                        name: true,
-                    },
-                },
+            orderBy: {
+                [orderKey]: orderValue,
             },
-            orderBy,
         });
-
         return resumes;
     };
 

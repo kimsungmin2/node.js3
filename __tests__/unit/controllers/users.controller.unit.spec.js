@@ -36,7 +36,11 @@ describe("Users Controller Unit Test", () => {
     });
 
     test("createUser Method", async () => {
-        const req = mockRequest({ email: "test@test.com", password: "password", Checkpass: "password", name: "Test", emailstatus: "yes" }, {}, {});
+        const req = mockRequest(
+            { email: "test@test.com", password: "password", Checkpass: "password", name: "testName", emailstatus: "yes" },
+            {},
+            {}
+        );
         const res = mockResponse();
         await usersController.createUser(req, res, mockNext);
 
@@ -84,8 +88,6 @@ describe("Users Controller Unit Test", () => {
         });
         await usersController.signIn(req, res, next);
 
-        expect(mockUsersService.getUserByEmail).toHaveBeenCalledWith("test@test.com");
-        expect(mockUsersService.getUserByEmail).toHaveBeenCalledTimes(1);
         expect(mockUsersService.signIn).toHaveBeenCalledWith("test@test.com", "password");
         expect(mockUsersService.signIn).toHaveBeenCalledTimes(1);
         expect(res.cookie).toHaveBeenCalledWith("authorization", "Bearer userJWT");
@@ -95,18 +97,64 @@ describe("Users Controller Unit Test", () => {
     });
 
     test("updateUser Method", async () => {
-        const req = mockRequest({ email: "test@test.com", password: "password", name: "Test" }, {}, { userId: 1 });
+        const mockReturn = { userId: 1 };
+        mockUsersService.getUserById.mockReturnValue(mockReturn);
+        mockUsersService.deleteUser.mockReturnValue(true);
+        const userId = 1;
+        const UserId = 2;
+        const password = "password";
+        const name = "testName";
+        const permission = "Admin";
+        const req = {
+            params: { userId },
+            body: { password, name },
+            user: { UserId, permission },
+        };
         const res = mockResponse();
-        await usersController.updateUser(req, res, mockNext);
+        let next = jest.fn();
+
+        await usersController.updateUser(req, res, next);
 
         expect(mockUsersService.updateUser).toHaveBeenCalledTimes(1);
+        expect(mockUsersService.updateUser).toHaveBeenCalledWith(userId, password, name, permission);
+
+        req.user.permission = "User";
+        req.user.UserId = 2;
+        mockUsersService.getUserById.mockReturnValue({ ...mockReturn, userId: 1 });
+        next = (err) => {
+            throw err;
+        };
+        await expect(usersController.updateUser(req, res, next)).rejects.toThrow("권한이 없습니다.");
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({ message: "업데이트에 성공했습니다" });
     });
 
     test("deleteUser Method", async () => {
-        const req = mockRequest({}, {}, { userId: 1 });
+        const mockReturn = { userId: 1 };
+        mockUsersService.getUserById.mockReturnValue(mockReturn);
+        mockUsersService.deleteUser.mockReturnValue(true);
+        const userId = 1;
+        const UserId = 2;
+        const permission = "Admin";
+        const req = {
+            params: { userId },
+            user: { UserId, permission },
+        };
         const res = mockResponse();
-        await usersController.deleteUser(req, res, mockNext);
+        let next = jest.fn();
+
+        await usersController.deleteUser(req, res, next);
 
         expect(mockUsersService.deleteUser).toHaveBeenCalledTimes(1);
+        expect(mockUsersService.deleteUser).toHaveBeenCalledWith(userId, permission);
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({ message: "삭제 성공" });
+        req.user.permission = "User";
+        req.user.UserId = 2;
+        mockUsersService.getUserById.mockReturnValue({ ...mockReturn, userId: 1 });
+        next = (err) => {
+            throw err;
+        };
+        await expect(usersController.deleteUser(req, res, next)).rejects.toThrow("권한이 없습니다.");
     });
 });

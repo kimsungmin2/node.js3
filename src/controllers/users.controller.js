@@ -4,68 +4,45 @@ export class UsersController {
     }
 
     createUser = async (req, res, next) => {
-        try {
-            const { email, password, Checkpass, name, emailstatus } = req.body;
+        const { email, password, Checkpass, name, emailstatus } = req.body;
 
-            const createdUser = await this.usersService.createUser(email, password, Checkpass, name, emailstatus);
+        const createdUser = await this.usersService.createUser(email, password, Checkpass, name, emailstatus);
 
-            return res.status(201).json({ message: "이메일을 전송했습니다." });
-        } catch (err) {
-            next(err);
-        }
+        return res.status(201).json({ message: "이메일을 전송했습니다." });
     };
 
     createUserToken = async (req, res, next) => {
-        try {
-            const { email, token } = req.body;
-            await this.usersService.createUserToken(email, token);
-            res.status(200).json({ message: "회원가입이 완료되었습니다." });
-        } catch (err) {
-            next(err);
-        }
+        const { email, token } = req.body;
+        await this.usersService.createUserToken(email, token);
+        res.status(200).json({ message: "회원가입이 완료되었습니다." });
     };
 
     getUsers = async (req, res, next) => {
-        try {
-            const users = await this.usersService.getUsers();
-            return res.status(200).json({ data: users });
-        } catch (err) {
-            next(err);
-        }
+        const users = await this.usersService.getUsers();
+        return res.status(200).json({ data: users });
     };
 
     getUserById = async (req, res, next) => {
-        try {
-            const { userId } = req.params;
-            const user = await this.usersService.getUserById(userId);
-            return res.status(200).json({ data: user });
-        } catch (err) {
-            next(err);
-        }
+        const { userId } = req.params;
+        const user = await this.usersService.getUserById(userId);
+        return res.status(200).json({ data: user });
     };
 
     signIn = async (req, res, next) => {
-        try {
-            const { email, password } = req.body;
-            const user = await this.usersService.getUserByEmail(email);
+        const { email, password } = req.body;
 
-            if (user.emailstatus !== "yes") return res.status(401).json({ message: "가입 대기중인 계정입니다." });
-
-            const tokens = await this.usersService.signIn(email, password);
-            res.cookie("authorization", `Bearer ${tokens.userJWT}`);
-            res.cookie("refreshToken", tokens.refreshToken);
-            return res.status(200).json({ message: "로그인 성공" });
-        } catch (err) {
-            next(err);
-        }
+        const tokens = await this.usersService.signIn(email, password);
+        res.cookie("authorization", `Bearer ${tokens.userJWT}`);
+        res.cookie("refreshToken", tokens.refreshToken);
+        return res.status(200).json({ message: "로그인 성공" });
     };
 
     updateUser = async (req, res, next) => {
         try {
             const { userId } = req.params;
-            const { password, name, permission } = req.body;
+            const { password, name } = req.body;
 
-            const { UserId } = req.user;
+            const { UserId, permission } = req.user;
 
             if (permission !== "Admin" && userId !== UserId) {
                 throw new Error("권한이 없습니다.");

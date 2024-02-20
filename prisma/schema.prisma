@@ -49,6 +49,7 @@ model Resumes {
   user Users @relation(fields: [userId], references: [userId], onDelete: Cascade)
   @@map("Resumes")
 }
+
 enum Status {
   APPLY
   DROP
@@ -57,3 +58,4 @@ enum Status {
   INTERVIEW2
   FINAL_PASS
 }
+ 
