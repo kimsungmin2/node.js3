@@ -1,6 +1,5 @@
 import { jest } from "@jest/globals";
 import { UsersController } from "../../../src/controllers/users.controller.js";
-import bcrypt from "bcrypt";
 
 let mockUsersService = {
     createUser: jest.fn(),
@@ -25,6 +24,7 @@ const mockResponse = () => {
     const res = {};
     res.status = jest.fn().mockReturnValue(res);
     res.json = jest.fn().mockReturnValue(res);
+    res.cookie = jest.fn().mockReturnValue(res);
     return res;
 };
 
@@ -44,7 +44,7 @@ describe("Users Controller Unit Test", () => {
     });
 
     test("createUserToken Method", async () => {
-        const req = mockRequest({ email: "test@test.com", token: "token" }, {}, {});
+        const req = mockRequest({ email: "test@test.com", token: "token" });
         const res = mockResponse();
         await usersController.createUserToken(req, res, mockNext);
 
@@ -68,20 +68,30 @@ describe("Users Controller Unit Test", () => {
     });
 
     test("signIn Method", async () => {
-        const req = mockRequest({ email: "test@test.com", password: "password" }, {}, {});
+        const req = mockRequest({ email: "test@test.com", password: "password" });
         const res = mockResponse();
+
+        const next = jest.fn();
 
         mockUsersService.getUserByEmail.mockResolvedValue({
             email: "test@test.com",
-            password: "$2a$10$V9DPoPvZtRpg9t23wzl5cO3N0Y32F6XJ0tl5QG3Y1ZNvKCflCbx8u", // bcrypt hash of 'password'
+            password: "$2a$10$V9DPoPvZtRpg9t23wzl5cO3N0Y32F6XJ0tl5QG3Y1ZNvKCflCbx8u",
             emailstatus: "yes",
         });
-        bcrypt.compare = jest.fn().mockResolvedValue(true);
+        mockUsersService.signIn.mockResolvedValue({
+            userJWT: "userJWT",
+            refreshToken: "refreshToken",
+        });
+        await usersController.signIn(req, res, next);
 
-        await usersController.signIn(req, res, mockNext);
-
+        expect(mockUsersService.getUserByEmail).toHaveBeenCalledWith("test@test.com");
         expect(mockUsersService.getUserByEmail).toHaveBeenCalledTimes(1);
+        expect(mockUsersService.signIn).toHaveBeenCalledWith("test@test.com", "password");
         expect(mockUsersService.signIn).toHaveBeenCalledTimes(1);
+        expect(res.cookie).toHaveBeenCalledWith("authorization", "Bearer userJWT");
+        expect(res.cookie).toHaveBeenCalledWith("refreshToken", "refreshToken");
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json).toHaveBeenCalledWith({ message: "로그인 성공" });
     });
 
     test("updateUser Method", async () => {
