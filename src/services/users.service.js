@@ -120,7 +120,7 @@ export class UsersService {
         if (user.emailstatus !== "yes") return res.status(401).json({ message: "가입 대기중인 계정입니다." });
         const userJWT = jwt.sign({ userId: user.userId }, process.env.JWT_SECRET, { expiresIn: "12h" });
         const refreshToken = jwt.sign({ userId: user.userId }, process.env.REFRESH_SECRET, { expiresIn: "7d" });
-
+        await this.usersRepository.saveToken(user.userId, refreshToken);
         return { userJWT, refreshToken };
     };
 

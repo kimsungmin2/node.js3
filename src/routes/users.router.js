@@ -4,10 +4,10 @@ import { UsersController } from "../controllers/users.controller.js";
 import { UsersRepository } from "../repositories/users.repository.js";
 import { UsersService } from "../services/users.service.js";
 import { authMiddleware } from "../middlewares/auth.middlewares.js";
+import { redisClient } from "../redis/client.js";
 
 const router = express.Router();
-
-const usersRepository = new UsersRepository(prisma);
+const usersRepository = new UsersRepository(prisma, redisClient);
 
 const usersService = new UsersService(usersRepository);
 

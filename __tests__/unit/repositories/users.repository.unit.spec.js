@@ -19,7 +19,7 @@ describe("Users Repository Unit Test", () => {
     });
 
     test("createUser Method", async () => {
-        const mockReturn = "create User Return String";
+        const mockReturn = "test";
         mockPrisma.users.create.mockReturnValue(mockReturn);
         const createUserParams = {
             email: "createUserEmail",
@@ -54,7 +54,7 @@ describe("Users Repository Unit Test", () => {
     });
 
     test("getUserByEmail Method", async () => {
-        const mockReturn = "getUserByEmail Return String";
+        const mockReturn = "test";
         mockPrisma.users.findFirst.mockReturnValue(mockReturn);
         const userEmail = "test@test.com";
         const userData = await usersRepository.getUserByEmail(userEmail);
@@ -65,7 +65,7 @@ describe("Users Repository Unit Test", () => {
     });
 
     test("updateUserEmailStatus Method", async () => {
-        const mockReturn = "updateUserEmailStatus Return String";
+        const mockReturn = "test";
         mockPrisma.users.update.mockReturnValue(mockReturn);
         const userId = 1;
         const emailStatus = "verified";
@@ -84,7 +84,7 @@ describe("Users Repository Unit Test", () => {
     });
 
     test("getUserById Method", async () => {
-        const mockReturn = "getUserById Return String";
+        const mockReturn = "test";
         mockPrisma.users.findFirst.mockReturnValue(mockReturn);
         const userId = 1;
         const user = await usersRepository.getUserById(userId);
@@ -95,7 +95,7 @@ describe("Users Repository Unit Test", () => {
     });
 
     test("getUserByEmail Method", async () => {
-        const mockReturn = "getUserByEmail Return String";
+        const mockReturn = "test";
         mockPrisma.users.findFirst.mockReturnValue(mockReturn);
         const email = "test@test.com";
         const user = await usersRepository.getUserByEmail(email);
@@ -106,7 +106,7 @@ describe("Users Repository Unit Test", () => {
     });
 
     test("updateUser Method", async () => {
-        const mockReturn = "updateUser Return String";
+        const mockReturn = "test";
         mockPrisma.users.update.mockReturnValue(mockReturn);
         const userId = 1;
         const hashedPassword = "hashedPassword";
@@ -122,7 +122,7 @@ describe("Users Repository Unit Test", () => {
         });
     });
     test("deleteUser Method", async () => {
-        const mockReturn = "deleteUser Return String";
+        const mockReturn = "test";
         mockPrisma.users.delete.mockReturnValue(mockReturn);
         const userId = 1;
         const deletedUser = await usersRepository.deleteUser(userId);

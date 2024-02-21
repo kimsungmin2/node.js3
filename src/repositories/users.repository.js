@@ -1,6 +1,9 @@
+import { tokenKey } from "../redis/key.js";
+
 export class UsersRepository {
-    constructor(prisma) {
+    constructor(prisma, redisClient) {
         this.prisma = prisma;
+        this.redisClient = redisClient;
     }
 
     createUser = async (email, hashedPassword, Checkpass, name, emailstatus, token) => {
@@ -58,12 +61,16 @@ export class UsersRepository {
         return updatedUser;
     };
 
-    deleteUser = async (userId, permission) => {
+    deleteUser = async (userId) => {
         const deletedUser = await this.prisma.users.delete({
             where: {
                 userId: +userId,
             },
         });
         return deletedUser;
+    };
+    saveToken = async (userId, refreshToken) => {
+        const tokens = await this.redisClient.hSet(tokenKey(userId), "token", refreshToken);
+        return tokens;
     };
 }
